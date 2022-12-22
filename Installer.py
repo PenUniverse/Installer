@@ -4,10 +4,14 @@ import time
 import json
 import zipfile
 import shutil
+import sys
 
 PENMODS_SERVER_ADDR    = "https://dictpen.amd.rocks/"
 PENMODS_PUBLIC_PACKS   = PENMODS_SERVER_ADDR + "public_packs"
-PENMODS_VERSION_PACKS  = PENMODS_SERVER_ADDR + "mod_versions"
+PENMODS_MOD_PACKS      = PENMODS_SERVER_ADDR + "mod_packs"
+
+MOD_PACK_VERSION    = 100
+PUBLIC_PACK_VERSION = 100
 
 DICTPEN_ADB_PASSWD = [
     'CherryYoudao',
@@ -18,7 +22,7 @@ def printLogo():
     print("""
 
     ╔═╗┌─┐┌┐┌╔╦╗┌─┐┌┬┐┌─┐
- -  ╠═╝├┤ │││║║║│ │ ││└─┐ -
+    ╠═╝├┤ │││║║║│ │ ││└─┐
     ╩  └─┘┘└┘╩ ╩└─┘─┴┘└─┘
 
     
@@ -45,18 +49,18 @@ class ADB:
 
     """ check adb install """
     def check(self) -> bool:
-        return os.popen(self.getCommand()).readline().find('Android Debug Bridge') != -1 \
+        return Utils.run(self.getCommand()).find('Android Debug Bridge') != -1 \
 
     """ automatic bypass adb auth """
     def bypassVerification(self) -> bool:
         for pwd in DICTPEN_ADB_PASSWD:
-            if os.popen('echo "%s" | %s -s %s shell auth' % (pwd,self.getCommand(),self.connected_device)).read().find('success') != -1:
+            if Utils.run('echo "%s" | %s -s %s shell auth' % (pwd,self.getCommand(),self.connected_device)).find('success') != -1:
                 return True
         return False
 
     """ test current device """
     def test(self) -> bool:
-        res = self._execute('shell uname -a').readline()
+        res = self._execute('shell uname -a')
         if res.find('login with "adb shell auth" to continue') != -1:
             assert self.bypassVerification(), 'Failed to unlock dictpen.'
         return res.find('Linux') != -1
@@ -71,19 +75,18 @@ class ADB:
 
     """ only generate command, without protect """
     def _execute(self, cmd):
-        return os.popen('%s -s %s %s' % (self.getCommand(),self.connected_device,cmd))
+        return Utils.run('%s -s %s %s' % (self.getCommand(),self.connected_device,cmd))
 
     """ automatic install adb service """
     def install(self) -> bool:
         if self.check():
             return True
         try:
-            obj = json.loads(requests.get(PENMODS_PUBLIC_PACKS).content)
-            assert obj['adb']
+            assert public_pack['adb']
         except:
             print('无法获取软件包列表。')
             return False
-        assert Utils.download(obj['adb'],'temp/adb.zip'),'无法下载Platform-Tools，ADB安装失败。'
+        assert Utils.download(public_pack['adb'],'temp/adb.zip'),'无法下载Platform-Tools，ADB安装失败。'
         file = zipfile.ZipFile('temp/adb.zip')
         shutil.rmtree('dependents/', ignore_errors=True)
         file.extractall(path='dependents/')
@@ -105,14 +108,14 @@ class ADB:
                 return False
             devices = []
             preText = '正在等待'
-            for line in os.popen(self.getCommand() + ' devices').readlines():
+            for line in Utils.run(self.getCommand() + ' devices').split('\n'):
                 if (len(line) < 5 or line.find('List of devices attached') != -1):
                     continue
                 dev = line.split('\t')
                 devices.append((dev[0],dev[1].removesuffix('\n')))
             if len(devices) > 0:
                 device = devices[0]
-                if (len(devices) > 1):
+                if len(devices) > 1:
                     preText = '! 请不要连接多个设备'
                 else:
                     if (device[1] != 'device'):
@@ -150,6 +153,10 @@ class Utils:
                         size += len(data)
                         print('\r   '+'%s %.2f%%' % ('━' * int(size * 50 / content_size),
                             float(size / content_size * 100)), end=' ')
+            else:
+                print(url)
+                print('Wrong response code(%s)' % response.status_code)
+                return False
             end = time.time()
             print('\nCompleted, time cost %.2f second(s).' % (end - start))
             return True
@@ -157,9 +164,108 @@ class Utils:
             print("Fail to download %s!" % url)
             return False
 
+    @staticmethod
+    def run(cmd: str) -> str:
+        with os.popen(cmd) as res:
+            buffer = res._stream.buffer.read()
+        try:
+            return buffer.decode().strip()
+        except UnicodeDecodeError:
+            return buffer.decode('gbk').strip()
+
+adb         = None
+mod_pack    = None
+public_pack = None
+
+def getSystemVersions() -> dict:
+    ret = {}
+    exec = adb.execute('shell cat /Version')
+    if exec.find('No such file') != -1:
+        return {}
+    for i in exec.split('\n'):
+        kv = i.split(':')
+        ret[kv[0]] = kv[1].strip('\r').removeprefix(' ')
+    return ret
+
+def getPcbaVersion() -> str:
+    exec = adb.execute('shell get_pcba_version')
+    return exec if exec.find('not found') == -1 else None
+
+def getAppMd5() -> str:
+    exec = adb.execute('shell md5sum -b /oem/YoudaoDictPen/output/YoudaoDictPen')
+    return exec.split(' ')[0].lower() if exec.find('No such file') == -1 else None
+
+def checkConnection() -> bool:
+    return requests.get(PENMODS_SERVER_ADDR).status_code == 200
+
+def isInstalled():
+    exec = adb.execute('shell "[ -f /userdisk/Loader/try_inject ] && echo yes || echo no"')
+    return exec.find('yes') != -1
+
+def install_a(info: dict):
+    assert Utils.download(info['download'],'temp/pack.zip')
+    zipfile.ZipFile('temp/pack.zip').extractall('temp/pack')
+    
+    def upload_ex(path,to): #auto add 'temp/pack/' prefix..
+        pass
+    
+    print('(1/4) 正在安装自动注入器...')
+    upload_ex('dependents/injector','/userdisk/Loader/injector')
+    upload_ex('script/try_inject','/usr/bin/try_inject')
+
+    print('(2/4) 正在更新动态链接库...')
+    print('(3/4) 正在安装 PenMods...')
+    print('(4/4) 正在重启并测试...')
+
 
 if __name__ == '__main__':
     printLogo()
     initDirs()
-    adb = ADB()
 
+    assert sys.platform == 'win32', '安装程序暂只支持Windows系统。'
+
+    # Initialization.
+    adb = ADB()
+    assert checkConnection(), '安装程序需要联网执行，请检查您的网络链接。'
+    
+    mod_pack = json.loads(requests.get(PENMODS_MOD_PACKS).content)
+    public_pack = json.loads(requests.get(PENMODS_PUBLIC_PACKS).content)
+    assert mod_pack['version'] and public_pack['version'], '无法获取在线 ModPacks.'
+    assert mod_pack['version'] == MOD_PACK_VERSION, 'MOD列包表版本不匹配，请升级安装程序。'
+    assert public_pack['version'] == PUBLIC_PACK_VERSION, '公共包列表版本不匹配，请升级安装程序。'
+
+    mod_pack = mod_pack['packs']
+    public_pack = public_pack['packs']
+    
+    # Preparing for the Adaptation Check.
+    sys_version = getSystemVersions()['Version']
+    sys_pcba    = getPcbaVersion()
+    sys_app_md5 = getAppMd5()
+    if not sys_version or not sys_pcba:
+        print('无法获取系统信息，连接的也许不是词典笔？')
+        exit(-1)
+    
+    assert isInstalled(), '当前系统已安装PenMods，请先还原系统再执行安装。'
+
+    # Match the appropriate pack.
+    matched = None
+    for pack in mod_pack:
+        adapt  = pack['adaptation']
+        if sys_version in adapt['version'] and sys_pcba in adapt['pcba'] and sys_app_md5 in adapt['app']:
+            matched = pack
+            break
+    
+    assert matched, '无法为当前词典笔匹配合适的PenMods，可能其暂时不受支持。'
+    print('已匹配到合适的PenMods (%s), 是否确认安装？' % matched['name'])
+    print('# 务必仔细阅读 github.com/PenUniverse/Installer 仓库中的注意事项')
+    print('# 安装 PenMods 可能导致您失去有道官方保修')
+    print('# 使用 PenMods 造成的一切后果均由您本人承担，与项目作者没有任何关系')
+    print('# 特别注意: 不要为已修改过的系统执行安装，这是安装程序并非升级程序！！')
+
+    if input('您是否已充分阅读、理解与接受以上告示，并决定开始安装？[y/N] ').lower() != 'y':
+        exit(-1)
+    
+    if matched['install'] == 'a':
+        install_a(matched)
+    else:
+        print('远端要求使用不受支持的安装方法，尝试更新安装程序？')
