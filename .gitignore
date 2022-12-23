@@ -1,3 +1,6 @@
 temp/*
 dependents/*
 .vscode/*
+build/*
+dist/*
+*.spec
