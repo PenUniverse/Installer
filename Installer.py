@@ -5,6 +5,7 @@ import json
 import zipfile
 import shutil
 import sys
+from threading import Thread
 
 PENMODS_SERVER_ADDR    = "https://dictpen.amd.rocks/"
 PENMODS_PUBLIC_PACKS   = PENMODS_SERVER_ADDR + "public_packs"
@@ -12,11 +13,6 @@ PENMODS_MOD_PACKS      = PENMODS_SERVER_ADDR + "mod_packs"
 
 MOD_PACK_VERSION    = 100
 PUBLIC_PACK_VERSION = 100
-
-DICTPEN_ADB_PASSWD = [
-    'CherryYoudao',
-    'x3sbrY1d2@dictpen'
-]
 
 def printLogo():
     print("""
@@ -27,7 +23,8 @@ def printLogo():
 
     
 Welcome to use PenMods!
-Developer: RedbeanW;""")
+Developer: RedbeanW;
+Repo: https://github.com/PenUniverse/Installer""")
 
 def initDirs():
     os.makedirs('dependents', exist_ok=True)
@@ -36,8 +33,7 @@ def initDirs():
 
 class ADB:
 
-    # the serial number.
-    connected_device = ''
+    first_connected_device = None
 
     def __init__(self) -> None:
         pass
@@ -53,29 +49,30 @@ class ADB:
 
     """ automatic bypass adb auth """
     def bypassVerification(self) -> bool:
-        for pwd in DICTPEN_ADB_PASSWD:
-            if Utils.run('echo "%s" | %s -s %s shell auth' % (pwd,self.getCommand(),self.connected_device)).find('success') != -1:
+        if not self.first_connected_device:
+            return False
+        if self._execute('shell ls').find('login with "adb shell auth" to continue') != -1:
+            if Utils.run('echo CherryYoudao | %s shell auth' % self.getCommand()).find('success') != -1:
+                print('DictPen is unlocked.')
                 return True
-        return False
+            else:
+                return False
+        return True
 
     """ test current device """
     def test(self) -> bool:
-        res = self._execute('shell uname -a')
-        if res.find('login with "adb shell auth" to continue') != -1:
-            assert self.bypassVerification(), 'Failed to unlock dictpen.'
-        return res.find('Linux') != -1
+        return self._execute('shell uname -a').find('Linux') != -1
 
     """ protected execute adb command """
     def execute(self, cmd):
-        if not self.check():
-            assert self.install(), 'ADB service is necessary.'
         if not self.test():
             assert self.connect(), 'Please connect your device.'
+        self.bypassVerification()
         return self._execute(cmd)
 
     """ only generate command, without protect """
     def _execute(self, cmd):
-        return Utils.run('%s -s %s %s' % (self.getCommand(),self.connected_device,cmd))
+        return Utils.run('%s %s' % (self.getCommand(),cmd))
 
     """ automatic install adb service """
     def install(self) -> bool:
@@ -121,12 +118,12 @@ class ADB:
                     if (device[1] != 'device'):
                         preText = '! 设备 %s 已连接，但设备状态不正确(%s)，请检查' % (device[0],device[1])
                     else:
-                        if self.connected_device != '' and device[0] != self.connected_device:
+                        if self.first_connected_device and device[0] != self.first_connected_device:
                             preText = '! 这是断线重连，请不要连接不同的设备'
                         else:
                             print('\n设备 %s 已连接' % device[0])
                             print('# 在安装程序运行过程中，请保持设备连接。')
-                            self.connected_device = device[0]
+                            self.first_connected_device = device[0]
                             return True
             print('\r%s...%ss' % (preText,waitingTime),end='')
             time.sleep(1)
@@ -184,7 +181,7 @@ def getSystemVersions() -> dict:
         return {}
     for i in exec.split('\n'):
         kv = i.split(':')
-        ret[kv[0]] = kv[1].strip('\r').removeprefix(' ')
+        if len(kv) >= 2: ret[kv[0]] = kv[1].strip('\r').removeprefix(' ')
     return ret
 
 def getPcbaVersion() -> str:
@@ -198,25 +195,50 @@ def getAppMd5() -> str:
 def checkConnection() -> bool:
     return requests.get(PENMODS_SERVER_ADDR).status_code == 200
 
-def isInstalled():
-    exec = adb.execute('shell "[ -f /userdisk/Loader/try_inject ] && echo yes || echo no"')
-    return exec.find('yes') != -1
+def isInstalled() -> bool:
+    exec = adb.execute('shell cat /usr/bin/runDictPen')
+    return exec.find('try_inject') == -1
 
 def install_a(info: dict):
     assert Utils.download(info['download'],'temp/pack.zip')
     zipfile.ZipFile('temp/pack.zip').extractall('temp/pack')
     
-    def upload_ex(path,to): #auto add 'temp/pack/' prefix..
-        pass
+    def ro_check():
+        if adb.execute('shell touch /TEST_PART_RW').find('Read-only file system'):
+            adb.execute('shell mount -o remount,rw /')
+            time.sleep(1)
+        adb.execute('shell rm -f /TEST_PART_RW')
+
+    def upload_ex(path,to,setperm=False):
+        ro_check()
+        adb.execute('push "temp/pack/%s" "%s"' % (path,to))
+        if setperm:
+            adb.execute('shell chmod +x "%s"' % to)
     
     print('(1/4) 正在安装自动注入器...')
-    upload_ex('dependents/injector','/userdisk/Loader/injector')
-    upload_ex('script/try_inject','/usr/bin/try_inject')
+    upload_ex('dependents/injector','/userdisk/Loader/injector',True)
+    upload_ex('script/try_inject','/usr/bin/try_inject',True)
+    adb.execute("shell \"sed -i '1i try_inject &' /usr/bin/runDictPen\"")
 
     print('(2/4) 正在更新动态链接库...')
-    print('(3/4) 正在安装 PenMods...')
-    print('(4/4) 正在重启并测试...')
+    upload_ex('dependents/libm.so.6','/lib/libm.so.6')
+    upload_ex('dependents/libstdc++.so.6','/usr/lib/libstdc++.so.6')
 
+    print('(3/4) 正在安装 PenMods...')
+    upload_ex('libPenMods.so','/userdisk/Loader')
+    upload_ex('external-icons/','/tmp/')
+    adb.execute('shell mv -b /tmp/external-icons/settings/* /oem/YoudaoDictPen/output/images/settings/')
+    
+
+    # AudioRecorder required.
+    upload_ex('dependents/lame','/userdisk/Loader/dependents/lame',True)
+    upload_ex('dependents/libtinfo.so.6','/userdisk/Loader/dependents/libtinfo.so.6')
+
+    print('(4/4) 安装完成，正在重启...')
+    adb.execute('shell safe_powerdown')
+    print('# 如果没有意外，PenMods 已成功安装到您的词典笔上。')
+    print('# Enjoy it!')
+    exit(0)
 
 if __name__ == '__main__':
     printLogo()
@@ -241,7 +263,7 @@ if __name__ == '__main__':
     sys_version = getSystemVersions()['Version']
     sys_pcba    = getPcbaVersion()
     sys_app_md5 = getAppMd5()
-    if not sys_version or not sys_pcba:
+    if not sys_version or not sys_pcba or not sys_app_md5:
         print('无法获取系统信息，连接的也许不是词典笔？')
         exit(-1)
     
@@ -256,7 +278,8 @@ if __name__ == '__main__':
             break
     
     assert matched, '无法为当前词典笔匹配合适的PenMods，可能其暂时不受支持。'
-    print('已匹配到合适的PenMods (%s), 是否确认安装？' % matched['name'])
+    ver = matched['version']
+    print('已匹配到合适的PenMods (%s,V%s), 是否确认安装？' % (matched['name'],'.'.join(str(v) for v in matched['version'])))
     print('# 务必仔细阅读 github.com/PenUniverse/Installer 仓库中的注意事项')
     print('# 安装 PenMods 可能导致您失去有道官方保修')
     print('# 使用 PenMods 造成的一切后果均由您本人承担，与项目作者没有任何关系')
