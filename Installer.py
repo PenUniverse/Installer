@@ -5,7 +5,6 @@ import json
 import zipfile
 import shutil
 import sys
-from threading import Thread
 
 PENMODS_SERVER_ADDR    = "https://dictpen.amd.rocks/"
 PENMODS_PUBLIC_PACKS   = PENMODS_SERVER_ADDR + "public_packs"
