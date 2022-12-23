@@ -64,6 +64,8 @@ class ADB:
 
     """ protected execute adb command """
     def execute(self, cmd):
+        if not self.check():
+            assert self.install(), 'ADB Service is necessary.'
         if not self.test():
             assert self.connect(), 'Please connect your device.'
         self.bypassVerification()
@@ -94,8 +96,7 @@ class ADB:
     """ automatic connect adb device """
     def connect(self) -> bool:
         print('# 请将词典笔与电脑连接，并开启ADB调试。')
-        print('# 如果您还未安装PenMods，请进入 [更多设置]->[关于]->[法律监管] 后快速连续点击5次屏幕即可打开ADB调试。')
-        print('# 如果您已经安装PenMods，请进入 [更多设置]->[关于]->[开发者选项]->[ADB服务] 中打开ADB调试。')
+        print('# 请进入 [更多设置]->[关于]->[法律监管] 后快速连续点击5次屏幕即可打开ADB调试。')
         waitingTime = 0
         while True:
             waitingTime += 1
