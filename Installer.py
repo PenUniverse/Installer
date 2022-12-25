@@ -13,7 +13,7 @@ PENMODS_MOD_PACKS      = PENMODS_SERVER_ADDR + "mod_packs"
 MOD_PACK_VERSION    = 100
 PUBLIC_PACK_VERSION = 100
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 def printLogo():
     print("""
@@ -27,6 +27,15 @@ Welcome to use PenMods!
 Developer:  RedbeanW;
 Repo:       https://github.com/PenUniverse/Installer
 Version:    %s""" % VERSION)
+
+def handleAssert(express, errmsg:str=None):
+    if express:
+        return
+    if errmsg:
+        print('Assertion Failed: %s' % errmsg)
+        os.system('pause')
+    exit(-1)
+    
 
 def initDirs():
     os.makedirs('dependents', exist_ok=True)
@@ -68,9 +77,9 @@ class ADB:
     """ protected execute adb command """
     def execute(self, cmd):
         if not self.check():
-            assert self.install(), 'ADB服务是必须的。'
+            handleAssert(self.install(), 'ADB服务是必须的。')
         if not self.test():
-            assert self.connect(), '请连接你的设备。'
+            handleAssert(self.connect(), '请连接你的设备。')
         self.bypassVerification()
         return self._execute(cmd)
 
@@ -83,11 +92,11 @@ class ADB:
         if self.check():
             return True
         try:
-            assert public_pack['adb']
+            handleAssert(public_pack['adb'])
         except:
             print('无法获取软件包列表。')
             return False
-        assert Utils.download(public_pack['adb'],'temp/adb.zip'), '无法下载Platform-Tools，ADB安装失败。'
+        handleAssert(Utils.download(public_pack['adb'],'temp/adb.zip'), '无法下载Platform-Tools，ADB安装失败。')
         file = zipfile.ZipFile('temp/adb.zip')
         shutil.rmtree('dependents/', ignore_errors=True)
         file.extractall(path='dependents/')
@@ -203,7 +212,7 @@ def isInstalled() -> bool:
     return exec.find('try_inject') == -1
 
 def install_a(info: dict):
-    assert Utils.download(info['download'],'temp/pack.zip')
+    handleAssert(Utils.download(info['download'],'temp/pack.zip'))
     zipfile.ZipFile('temp/pack.zip').extractall('temp/pack')
     
     def ro_check():
@@ -244,20 +253,21 @@ def install_a(info: dict):
     exit(0)
 
 if __name__ == '__main__':
+    
     printLogo()
     initDirs()
 
-    assert sys.platform == 'win32', '安装程序暂只支持Windows系统。'
+    handleAssert(sys.platform == 'win32', '安装程序暂只支持Windows系统。')
 
     # Initialization.
     adb = ADB()
-    assert checkConnection(), '安装程序需要联网执行，请检查您的网络链接。'
+    handleAssert(checkConnection(), '安装程序需要联网执行，请检查您的网络链接。')
     
     mod_pack = json.loads(requests.get(PENMODS_MOD_PACKS).content)
     public_pack = json.loads(requests.get(PENMODS_PUBLIC_PACKS).content)
-    assert mod_pack['version'] and public_pack['version'], '无法获取在线 ModPacks.'
-    assert mod_pack['version'] == MOD_PACK_VERSION, 'MOD列包表版本不匹配，请升级安装程序。'
-    assert public_pack['version'] == PUBLIC_PACK_VERSION, '公共包列表版本不匹配，请升级安装程序。'
+    handleAssert(mod_pack['version'] and public_pack['version'], '无法获取在线 ModPacks.')
+    handleAssert(mod_pack['version'] == MOD_PACK_VERSION, 'MOD列包表版本不匹配，请升级安装程序。')
+    handleAssert(public_pack['version'] == PUBLIC_PACK_VERSION, '公共包列表版本不匹配，请升级安装程序。')
 
     mod_pack = mod_pack['packs']
     public_pack = public_pack['packs']
@@ -270,7 +280,7 @@ if __name__ == '__main__':
         print('无法获取系统信息，连接的也许不是词典笔？')
         exit(-1)
     
-    assert isInstalled(), '当前系统已安装PenMods，请先还原系统再执行安装。'
+    handleAssert(isInstalled(), '当前系统已安装PenMods，请先还原系统再执行安装。')
 
     # Match the appropriate pack.
     matched = None
