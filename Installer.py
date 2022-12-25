@@ -65,9 +65,9 @@ class ADB:
     """ protected execute adb command """
     def execute(self, cmd):
         if not self.check():
-            assert self.install(), 'ADB Service is necessary.'
+            assert self.install(), 'ADB服务是必须的。'
         if not self.test():
-            assert self.connect(), 'Please connect your device.'
+            assert self.connect(), '请连接你的设备。'
         self.bypassVerification()
         return self._execute(cmd)
 
@@ -84,7 +84,7 @@ class ADB:
         except:
             print('无法获取软件包列表。')
             return False
-        assert Utils.download(public_pack['adb'],'temp/adb.zip'),'无法下载Platform-Tools，ADB安装失败。'
+        assert Utils.download(public_pack['adb'],'temp/adb.zip'), '无法下载Platform-Tools，ADB安装失败。'
         file = zipfile.ZipFile('temp/adb.zip')
         shutil.rmtree('dependents/', ignore_errors=True)
         file.extractall(path='dependents/')
@@ -277,7 +277,12 @@ if __name__ == '__main__':
             matched = pack
             break
     
-    assert matched, '无法为当前词典笔匹配合适的PenMods，可能其暂时不受支持。'
+    if not matched:
+        print('无法为当前词典笔匹配合适的PenMods，可能其暂时不受支持。')
+        print('Version: %s' % sys_version)
+        print('Pcba:    %s' % sys_pcba)
+        print('App:     %s' % sys_app_md5)
+        exit(-1)
     ver = matched['version']
     print('已匹配到合适的PenMods (%s,V%s), 是否确认安装？' % (matched['name'],'.'.join(str(v) for v in matched['version'])))
     print('# 务必仔细阅读 github.com/PenUniverse/Installer 仓库中的注意事项')
