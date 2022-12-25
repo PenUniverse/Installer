@@ -13,6 +13,8 @@ PENMODS_MOD_PACKS      = PENMODS_SERVER_ADDR + "mod_packs"
 MOD_PACK_VERSION    = 100
 PUBLIC_PACK_VERSION = 100
 
+VERSION = "1.0.0"
+
 def printLogo():
     print("""
 
@@ -22,8 +24,9 @@ def printLogo():
 
     
 Welcome to use PenMods!
-Developer: RedbeanW;
-Repo: https://github.com/PenUniverse/Installer""")
+Developer:  RedbeanW;
+Repo:       https://github.com/PenUniverse/Installer
+Version:    %s""" % VERSION)
 
 def initDirs():
     os.makedirs('dependents', exist_ok=True)
