@@ -3,7 +3,7 @@
 
 ### Noice
  - 这是安装程序而非升级程序，请勿对已修改过的系统使用此程序
- - Installer 需要 Win8 或更新版本的操作系统（参加pyinstaller[官方文档](https://pyinstaller.org/en/latest/requirements.html)）
+ - Installer 需要 Win8 或更新版本的操作系统（参见pyinstaller[官方文档](https://pyinstaller.org/en/latest/requirements.html)）
  - Release 提供的版本打包自 `Installer.py`，您也可以使用 Python 3.8 及以上版本直接运行
  ```
  python Installer.py
