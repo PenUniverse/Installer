@@ -1,5 +1,5 @@
 # Installer
-这是一个快捷方便的PenMods安装程序，关于PenMods的介绍请看[这里](https://github.com/PenUniverse/PenMods-release)
+这是一个快捷方便的 PenMods[^1] 安装程序，关于 PenMods 的介绍请看[这里](https://github.com/PenUniverse/PenMods-release)
 
 ### Noice
  - 这是安装程序而非升级程序，请勿对已修改过的系统使用此程序
@@ -9,6 +9,12 @@
  python Installer.py
  ```
  - 暂时不支持Linux
+
+### Attention
+```diff
+- 这是免费项目，未经许可任何人不得使用本仓库的任何内容进行商业活动。
+- 如果您发现有人假冒开发者或非法二次出售 PenMods。若您是非法倒卖行为的受害者，请立即退款举报并向当地公安机关报案。
+```
 
 ### Feature
  - 若`PATH`中没有adb，自动下载并安装
@@ -22,4 +28,7 @@
  - 根据指引和提示，等待程序执行完成即可（一般整个过程不超过1分钟）
  
 ### Donate
- - 如果你觉得不错，请考虑捐赠 👉[爱发电](https://afdian.net/a/kbs007)
+ - 如果你觉得不错，请考虑捐赠 👉[爱发电](https://afdian.net/a/kbs007)'
+
+[^1]: PenMods by [RedbeanW](https://github.com/Redbeanw44602)
+
