@@ -16,13 +16,13 @@ PUBLIC_PACK_VERSION = 100
 VERSION = "1.0.2"
 
 def printLogo():
-    print("""
-
-    ╔═╗┌─┐┌┐┌╔╦╗┌─┐┌┬┐┌─┐
-    ╠═╝├┤ │││║║║│ │ ││└─┐
-    ╩  └─┘┘└┘╩ ╩└─┘─┴┘└─┘
-
-    
+    print("""┌───────────────────────────────────┐
+│                                   │
+│       ╔═╗┌─┐┌┐┌╔╦╗┌─┐┌┬┐┌─┐       │
+│       ╠═╝├┤ │││║║║│ │ ││└─┐       │
+│       ╩  └─┘┘└┘╩ ╩└─┘─┴┘└─┘       │
+│                                   │
+└───────────────────────────────────┘
 Welcome to use PenMods!
 Developer:  RedbeanW
 Repo:       https://github.com/PenUniverse/Installer
