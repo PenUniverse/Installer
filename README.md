@@ -3,7 +3,7 @@
 
 ### Noice
  - 这是安装程序而非升级程序，请勿对已修改过的系统使用此程序
- - Installer 需要 Win8 或更新版本的操作系统（参见pyinstaller[官方文档](https://pyinstaller.org/en/latest/requirements.html)）
+ - Installer 需要 Win7 或更新版本的操作系统（参见pyinstaller[官方文档](https://pyinstaller.org/en/latest/requirements.html)）
  - Release 提供的版本打包自 `Installer.py`，您也可以使用 Python 3.8 及以上版本直接运行
  ```
  python Installer.py
@@ -13,7 +13,7 @@
 ### Attention
 ```diff
 - 这是免费项目，未经许可任何人不得使用本仓库的任何内容进行商业活动。
-- 如果您发现有人假冒开发者或非法二次出售 PenMods。若您是非法倒卖行为的受害者，请立即退款举报并向当地公安机关报案。
+- 若您发现有人非法盗卖 PenMods，请立即向相关交易平台举报并申请退款，您的每一笔订单都将项目向死亡方向推进！
 ```
 
 ### Feature
