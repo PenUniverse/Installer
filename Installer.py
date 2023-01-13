@@ -13,7 +13,7 @@ PENMODS_MOD_PACKS      = PENMODS_SERVER_ADDR + "mod_packs"
 MOD_PACK_VERSION    = 100
 PUBLIC_PACK_VERSION = 100
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 def printLogo():
     print("""
@@ -24,18 +24,20 @@ def printLogo():
 
     
 Welcome to use PenMods!
-Developer:  RedbeanW;
+Developer:  RedbeanW
 Repo:       https://github.com/PenUniverse/Installer
 Version:    %s""" % VERSION)
+
+def terminate():
+    os.system('pause')
+    exit(-1)
 
 def handleAssert(express, errmsg:str=None):
     if express:
         return
     if errmsg:
         print('Assertion Failed: %s' % errmsg)
-        os.system('pause')
-    exit(-1)
-    
+    terminate()
 
 def initDirs():
     os.makedirs('dependents', exist_ok=True)
@@ -250,7 +252,7 @@ def install_a(info: dict):
     adb.execute('shell safe_powerdown')
     print('# 如果没有意外，PenMods 已成功安装到您的词典笔上。')
     print('# Enjoy it!')
-    exit(0)
+    terminate()
 
 if __name__ == '__main__':
     
@@ -278,7 +280,7 @@ if __name__ == '__main__':
     sys_app_md5 = getAppMd5()
     if not sys_version or not sys_pcba or not sys_app_md5:
         print('无法获取系统信息，连接的也许不是词典笔？')
-        exit(-1)
+        terminate()
     
     handleAssert(isInstalled(), '当前系统已安装PenMods，请先还原系统再执行安装。')
 
@@ -295,7 +297,7 @@ if __name__ == '__main__':
         print('Version: %s' % sys_version)
         print('Pcba:    %s' % sys_pcba)
         print('App:     %s' % sys_app_md5)
-        exit(-1)
+        terminate()
     ver = matched['version']
     print('已匹配到合适的PenMods (%s,V%s), 是否确认安装？' % (matched['name'],'.'.join(str(v) for v in matched['version'])))
     print('# 务必仔细阅读 github.com/PenUniverse/Installer 仓库中的注意事项')
@@ -304,7 +306,7 @@ if __name__ == '__main__':
     print('# 特别注意: 不要为已修改过的系统执行安装，这是安装程序并非升级程序！！')
 
     if input('您是否已充分阅读、理解与接受以上告示，并决定开始安装？[y/N] ').lower() != 'y':
-        exit(-1)
+        terminate()
     
     if matched['install'] == 'a':
         install_a(matched)
