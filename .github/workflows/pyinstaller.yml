@@ -14,7 +14,7 @@ jobs:
     
     # For Windows 7 support, must <= 3.8.
     - name: Set up Python 3.8
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: "3.8"
 
@@ -27,7 +27,7 @@ jobs:
       run: |
         pyinstaller -F Installer.py
         
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: dev_mod_installer
         path: dist
