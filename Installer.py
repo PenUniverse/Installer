@@ -13,7 +13,7 @@ PENMODS_MOD_PACKS      = PENMODS_SERVER_ADDR + "mod_packs"
 MOD_PACK_VERSION    = 100
 PUBLIC_PACK_VERSION = 100
 
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 
 def printLogo():
     print("""┌───────────────────────────────────┐
@@ -213,7 +213,7 @@ def isInstalled() -> bool:
     exec = adb.execute('shell cat /usr/bin/runDictPen')
     return exec.find('try_inject') == -1
 
-def install_a(info: dict):
+def install_a1(info: dict):
     handleAssert(Utils.download(info['download'],'temp/pack.zip'))
     zipfile.ZipFile('temp/pack.zip').extractall('temp/pack')
     
@@ -242,11 +242,6 @@ def install_a(info: dict):
     upload_ex('libPenMods.so','/userdisk/Loader')
     upload_ex('external-icons/','/tmp/')
     adb.execute('shell mv -b /tmp/external-icons/settings/* /oem/YoudaoDictPen/output/images/settings/')
-    
-
-    # AudioRecorder required.
-    upload_ex('dependents/lame','/userdisk/Loader/dependents/lame',True)
-    upload_ex('dependents/libtinfo.so.6','/userdisk/Loader/dependents/libtinfo.so.6')
 
     print('(4/4) 安装完成，正在重启...')
     adb.execute('shell safe_powerdown')
@@ -308,7 +303,7 @@ if __name__ == '__main__':
     if input('您是否已充分阅读、理解与接受以上告示，并决定开始安装？[y/N] ').lower() != 'y':
         terminate()
     
-    if matched['install'] == 'a':
-        install_a(matched)
+    if matched['install'] == 'a1':
+        install_a1(matched)
     else:
         print('远端要求使用不受支持的安装方法，尝试更新安装程序？')
