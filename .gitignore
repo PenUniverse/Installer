@@ -1,3 +1,9 @@
-temp/*
-dependents/*
-.vscode/*
+# project
+temp
+dependents
+.vscode
+
+# pyinstaller
+build
+dist
+*.spec

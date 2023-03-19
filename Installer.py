@@ -13,7 +13,7 @@ PENMODS_MOD_PACKS      = PENMODS_SERVER_ADDR + "mod_packs"
 MOD_PACK_VERSION    = 100
 PUBLIC_PACK_VERSION = 100
 
-VERSION = "1.0.3"
+VERSION = "1.1.0"
 
 def printLogo():
     print("""┌───────────────────────────────────┐
@@ -30,7 +30,7 @@ Version:    %s""" % VERSION)
 
 def terminate():
     os.system('pause')
-    exit(-1)
+    sys.exit(-1)
 
 def handleAssert(express, errmsg:str=None):
     if express:
@@ -213,7 +213,7 @@ def isInstalled() -> bool:
     exec = adb.execute('shell cat /usr/bin/runDictPen')
     return exec.find('try_inject') == -1
 
-def install_a1(info: dict):
+def install_a2(info: dict):
     handleAssert(Utils.download(info['download'],'temp/pack.zip'))
     zipfile.ZipFile('temp/pack.zip').extractall('temp/pack')
     
@@ -240,10 +240,38 @@ def install_a1(info: dict):
 
     print('(3/4) 正在安装 PenMods...')
     upload_ex('libPenMods.so','/userdisk/Loader')
-    upload_ex('external-icons/','/tmp/')
-    adb.execute('shell mv -b /tmp/external-icons/settings/* /oem/YoudaoDictPen/output/images/settings/')
 
     print('(4/4) 安装完成，正在重启...')
+    adb.execute('shell safe_powerdown')
+    print('# 如果没有意外，PenMods 已成功安装到您的词典笔上。')
+    print('# Enjoy it!')
+    terminate()
+
+def install_b1(info: dict):
+    handleAssert(Utils.download(info['download'],'temp/pack.zip'))
+    zipfile.ZipFile('temp/pack.zip').extractall('temp/pack')
+    
+    def ro_check():
+        if adb.execute('shell touch /TEST_PART_RW').find('Read-only file system'):
+            adb.execute('shell mount -o remount,rw /')
+            time.sleep(1)
+        adb.execute('shell rm -f /TEST_PART_RW')
+
+    def upload_ex(path,to,setperm=False):
+        ro_check()
+        adb.execute('push "temp/pack/%s" "%s"' % (path,to))
+        if setperm:
+            adb.execute('shell chmod +x "%s"' % to)
+    
+    print('(1/3) 正在安装自动注入器...')
+    upload_ex('dependents/injector','/userdisk/Loader/injector',True)
+    upload_ex('script/try_inject','/usr/bin/try_inject',True)
+    adb.execute("shell \"sed -i '1i try_inject &' /usr/bin/runDictPen\"")
+
+    print('(2/3) 正在安装 PenMods...')
+    upload_ex('libPenMods.so','/userdisk/Loader')
+
+    print('(3/3) 安装完成，正在重启...')
     adb.execute('shell safe_powerdown')
     print('# 如果没有意外，PenMods 已成功安装到您的词典笔上。')
     print('# Enjoy it!')
@@ -303,7 +331,9 @@ if __name__ == '__main__':
     if input('您是否已充分阅读、理解与接受以上告示，并决定开始安装？[y/N] ').lower() != 'y':
         terminate()
     
-    if matched['install'] == 'a1':
-        install_a1(matched)
+    if matched['install'] == 'a2':
+        install_a2(matched)
+    elif matched['install'] == 'b1':
+        install_b1(matched)
     else:
         print('远端要求使用不受支持的安装方法，尝试更新安装程序？')
